@@ -1,9 +1,9 @@
-/* Implementuar nga Ardian Grezda per lenden "Procesimi i imixheve" (mars-qershor 2004)
+/* Implemented by Ardian Grezda for the subject "Image processing" (march-june 2004) in University of Prishtina, Kosovo
 
- Ky program krijon bitmapin monokromatik
+ The program creates monochromatic bitmap
 
- Sintaksa:
-	createmonobitmap mono filename gjatesia gjeresia
+ Syntax:
+	createmonobitmap mono filename length width
 */
 
 #include <stdio.h>
@@ -19,8 +19,8 @@ int main(int argc, char *argv[])
 {
 	if (argc != 5)
 	{
-		printf("Bitmap-i nuk ka mundur te krijohet\n");
-		printf("Sintaksa: createmonobitmap mono filename gjatesia gjeresia\n");
+		printf("The bitmap could not be created\n");
+		printf("syntax: createmonobitmap mono filename length width\n");
 		return -1;
 	}
 	
@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
 	strcpy(szFileName, argv[2]);
 	char *Extension;
 
-	// Gjen paraqitjen e fundit te pikes ne emrin e datotekes dhe rezultatin e ruan
-	// ne variablen Extension
+	// Finds the last apperance of the dot (.) in the filename
+	// and saves it into Extension variable
 	Extension	= strrchr(argv[2],'.');
 	if (Extension == NULL)
 	{
@@ -43,24 +43,24 @@ int main(int argc, char *argv[])
 	Extension	= strupr(Extension);
 	if (strcmp(Extension, ".BMP"))
 	{
-		printf("Bitmapi duhet te kete ekstenzion .bmp!\n");
+		printf("Bitmap should have extension .bmp!\n");
 		return -1;
 	}
 
 	if (strcmp(argv[1], "MONO"))
 	{
-		printf("Argumenti i dyte duhet te jete mono!\n");
+		printf("The second argument should be mono!\n");
 		return -1;
 	}
 
-	// verifiko a eshte argumenti i katert numer
-	// e nese nuk eshte numer, atehere pason dalja nga programi
+	// verifies if the forth argument is number
+	// if it is not a number, the exit from the program will follow
 	int a;
 	for (a = 0; a < strlen(argv[3]); a++)
 	{
 		if (!isdigit(argv[3][a]))
 		{
-			printf("Argumenti i katert (per gjatesi te bitmapit) duhet te jete numer\n");
+			printf("The forth argument (for bitmap length) should be a number\n");
  			exit(1);
 		}
 	}
@@ -69,49 +69,49 @@ int main(int argc, char *argv[])
 	{
 		if (!isdigit(argv[4][a]))
 		{
-			printf("Argumenti i peste (per gjeresi te bitmapit) duhet te jete numer\n");
+			printf("The fifth argument (for bitmap width) should be a number\n");
  			exit(1);
 		}
 	}
 
 	long lHeight		= atol(argv[3]);
-	long lWidth			= atol(argv[4]);
+	long lWidth		= atol(argv[4]);
 	if (lHeight > 2000)
 	{
-		printf("Gjatesia e bitmapit duhet te jete deri ne 2000 piksela\n");
+		printf("The bitmap length must be maximum 2000 pixels\n");
 		return -1;
 	}
 
 	if (lWidth > 2000)
 	{
-		printf("Gjeresia e bitmapit duhet te jete deri ne 2000 piksela\n");
+		printf("The bitmap width must be maximum 2000 pixels\n");
 		return -1;
 	}
 
 	FILE *fbitmap;
 	if ((fbitmap = fopen(szFileName, "w+b")) == NULL)
 	{
-		printf("Eshte bere nje gabim ne datoteken %s ", szFileName);
+		printf("There is an error in the file %s ", szFileName);
 		return -1;
 	}
 
 	BITMAPFILEHEADER bfh;
 	BITMAPINFOHEADER bih;
 
-	// mbushe strukturen BITMAPINFOHEADER me informata per bitmap binar
-	bih.biSize			= sizeof(BITMAPINFOHEADER);
-	bih.biWidth			= lWidth;
+	// fills the structure BITMAPINFOHEADER  with information for binary bitmap
+	bih.biSize		= sizeof(BITMAPINFOHEADER);
+	bih.biWidth		= lWidth;
 	bih.biHeight		= lHeight;
 	bih.biPlanes		= 1;
-	bih.biBitCount		= 1;  // bitmapi eshte binar 
+	bih.biBitCount		= 1;  // bitmap is binary
 	bih.biCompression	= BI_RGB;
 	bih.biSizeImage		= WIDTHBYTES (lWidth * bih.biBitCount ) * lHeight;
 	bih.biXPelsPerMeter	= 0;
-	bih.biYPelsPerMeter = 0;
+	bih.biYPelsPerMeter 	= 0;
 	bih.biClrUsed		= 0;
 	bih.biClrImportant	= 0;
 
-	// mbushe strukturen RGBQUAD me ngjyren e zeze dhe te bardhe
+	// fills RGBQUAD structure with black and white color 
 	RGBQUAD rgb[2];
 	rgb[0].rgbBlue		= 0;
 	rgb[0].rgbGreen		= 0;
@@ -123,8 +123,8 @@ int main(int argc, char *argv[])
 	rgb[1].rgbRed		= 0xff;
 	rgb[1].rgbReserved	= 0;
 
-	// mbushe strukturen BITMAPINFOHEADER me shenime per bitmapin binar
-	bfh.bfSize			= (DWORD) (sizeof(BITMAPFILEHEADER) + 
+	// fills BITMAPINFOHEADER structure with data for binary bitmap
+	bfh.bfSize		= (DWORD) (sizeof(BITMAPFILEHEADER) + 
 			bih.biSize + bih.biBitCount * sizeof(rgb) + bih.biSizeImage);
 	bfh.bfType			= 0x4d42;  // 0x42 = "B" 0x4d = "M" 
 	bfh.bfReserved1		= 0;
@@ -132,24 +132,24 @@ int main(int argc, char *argv[])
 	bfh.bfOffBits		= (DWORD) sizeof(BITMAPFILEHEADER) + 
 		bih.biSize + bih.biBitCount * sizeof (rgb); 
 
-	// numri i bajtave ne gjeresi te bitmapit
+	// number of bytes in the length of bitmap
 	long lNumberBytes = WIDTHBYTES (lWidth * bih.biBitCount);
 
-	// pikselat qe vendosen ne nje rresht
+	// pixels in one row
 	char *szRow			= new char[lNumberBytes];
 
-	// te gjithe pikselat vendosen ne kete varg
+	// all the pixels will be saved here 
 	char *szBytes		= new char[lNumberBytes * lHeight];
 	int l;
 
 	for (int nCurrentHeight = 0; nCurrentHeight < lHeight; nCurrentHeight++)
 	{
-		// te gjithe bajtat ne nje rresht do te jene 0
+		// all the bytes in one row will be zero
 		for (int nCurrentWByte = 0; nCurrentWByte < lNumberBytes; nCurrentWByte++)
 		{
 			szRow[nCurrentWByte]  = 0;
 		}
-		// vetem bajtat e caktuar behen 1 (sipas gjeresise)
+		// only some of the bytes will be 1 (according to width)
 		for (int nCurrentBit = 0; nCurrentBit < lWidth; nCurrentBit++)
 		{
 			nCurrentWByte = nCurrentBit / 8;
@@ -159,8 +159,8 @@ int main(int argc, char *argv[])
 		memcpy(szBytes + nCurrentHeight * lNumberBytes, szRow, lNumberBytes);
 	}
 
-	// shkruaj informatat per BITMAPFILEHEADER, BITMAPINFOHEADER, RGBQUAD dhe 
-	// per pikselat ne file-in binar
+	// writes the information about BITMAPFILEHEADER, BITMAPINFOHEADER, RGBQUAD and 
+	// the pixels in binary file
 
 	fwrite(&bfh, sizeof(BITMAPFILEHEADER), 1, fbitmap);
 	fwrite(&bih, sizeof(BITMAPINFOHEADER), 1, fbitmap);
@@ -173,6 +173,6 @@ int main(int argc, char *argv[])
 	szBytes = NULL;
 	
 	fclose(fbitmap);
-	printf ("Datoteka %s u krijua ne rregull\n", szFileName);
+	printf ("File %s was succesfuly created\n", szFileName);
 	return 0;
 }
