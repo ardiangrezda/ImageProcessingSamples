@@ -1,9 +1,10 @@
-/* Implementuar nga Ardian Grezda per lenden "Procesimi i imixheve" (mars-qershor 2004)
+/* Implemented by Ardian Grezda for the subject "Image processing" (march-june 2004) in University of Prishtina, Kosovo
 
- Ky program krijon bitmapin me 255 nivele gri
 
- Sintaksa:
-	creategraybitmap grayscale filename gjatesia gjeresia
+ The program creates bitmap image with 255 gray levels
+
+ Syntax:
+	creategraybitmap grayscale filename length width
 */
 
 #include <stdio.h>
@@ -19,8 +20,8 @@ int main(int argc, char *argv[])
 {
 	if (argc != 5)
 	{
-		printf("Bitmap-i nuk ka mundur te krijohet\n");
-		printf("Sintaksa: creategraybitmap grayscale filename gjatesia gjeresia\n");
+		printf("The bitmap could not be created\n");
+		printf("Syntax: creategraybitmap grayscale filename length width\n");
 		return -1;
 	}
 	
@@ -28,7 +29,6 @@ int main(int argc, char *argv[])
 	argv[1] = strupr(argv[1]);
 	argv[2] = strupr(argv[2]);
 
-	// nese variabla Extension eshte .BMP atehere ky funksion i kthehet funksionit main()
 	if (strcmp(argv[1], "GRAYSCALE"))
 	{
 		printf("Argumenti i dyte duhet te jete grayscale!\n");
@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
 	strcpy(szFileName, argv[2]);
 	char *Extension;
 
-	// Gjen paraqitjen e fundit te pikes ne emrin e datotekes dhe rezultatin e ruan
-	// ne variablen Extension
+	// Finds the last apperance of the dot (.) in the filename
+	// and saves it into Extension variable
 	Extension	= strrchr(argv[2],'.');
 	if (Extension == NULL)
 	{
@@ -50,18 +50,17 @@ int main(int argc, char *argv[])
 	Extension	= strupr(Extension);
 	if (strcmp(Extension, ".BMP"))
 	{
-		printf("Bitmapi duhet te kete ekstenzion .bmp!\n");
+		printf("Bitmap must have .bmp extension!\n");
 		return -1;
 	}
 
-	// verifiko a eshte argumenti i katert numer
-	// e nese nuk eshte numer, atehere pason dalja nga programi
+	// verifies if the forth argument is number, and if it is not, then the program will terminate
 	int a;
 	for (a = 0; a < strlen(argv[3]); a++)
 	{
 		if (!isdigit(argv[3][a]))
 		{
-			printf("Argumenti i katert (per gjatesi te bitmapit) duhet te jete numer\n");
+			printf("The forth argument (for bitmap length) should be a number\n");
  			exit(1);
 		}
 	}
@@ -70,50 +69,49 @@ int main(int argc, char *argv[])
 	{
 		if (!isdigit(argv[4][a]))
 		{
-			printf("Argumenti i peste (per gjeresi te bitmapit) duhet te jete numer\n");
+			printf("The fifth argument (for bitmap width) should be a number\n");
  			exit(1);
 		}
 	}
 
 	long lHeight		= atol(argv[3]);
-	long lWidth			= atol(argv[4]);
+	long lWidth		= atol(argv[4]);
 	if (lHeight > 2000)
 	{
-		printf("Gjatesia e bitmapit duhet te jete deri ne 2000 piksela\n");
+		printf("The bitmap length must be maximum 2000 pixels\n");
 		return -1;
 	}
 
 	if (lWidth > 2000)
 	{
-		printf("Gjeresia e bitmapit duhet te jete deri ne 2000 piksela\n");
+		printf("The bitmap width must be maximum 2000 pixels\n");
 		return -1;
 	}
 
 	FILE *fbitmap;
 	if ((fbitmap = fopen(szFileName, "w+b")) == NULL)
 	{
-		printf("Eshte bere nje gabim ne datoteken %s ", szFileName);
+		printf("There has been an error in the file: %s ", szFileName);
 		return -1;
 	}
 
 	BITMAPFILEHEADER bfh;
 	BITMAPINFOHEADER bih;
 
-	// mbushe strukturen BITMAPINFOHEADER me informata per grayscale bitmap 
-	bih.biSize			= sizeof(BITMAPINFOHEADER);
-	bih.biWidth			= lWidth;
+	// fills BITMAPINFOHEADER structure with information from grayscale bitmap
+	bih.biSize		= sizeof(BITMAPINFOHEADER);
+	bih.biWidth		= lWidth;
 	bih.biHeight		= lHeight;
 	bih.biPlanes		= 1;
-	bih.biBitCount		= 8;  // bitmapi eshte grayscale
+	bih.biBitCount		= 8;  // bitmap is grayscale
 	bih.biCompression	= BI_RGB;
 	bih.biSizeImage		= WIDTHBYTES (lWidth * bih.biBitCount ) * lHeight;
 	bih.biXPelsPerMeter	= 0;
-	bih.biYPelsPerMeter = 0;
+	bih.biYPelsPerMeter 	= 0;
 	bih.biClrUsed		= 0;
 	bih.biClrImportant	= 0;
 
-	// mbushe strukturen RGBQUAD ashtu qe komponentet R,G,B jane te njejta
-
+	// fills RGBQUAD structure, such that R, G and B componets are equal
 	RGBQUAD rgb[256];
 	for (int i = 0; i < 256; i++)
 	{
@@ -123,33 +121,31 @@ int main(int argc, char *argv[])
 		rgb[i].rgbReserved	= 0;
 	}
 
-	// mbushe strukturen BITMAPINFOHEADER me shenime per bitmapin binar
 	bfh.bfSize			= (DWORD) (sizeof(BITMAPFILEHEADER) + 
 			bih.biSize + sizeof(rgb) + bih.biSizeImage);
-	bfh.bfType			= 0x4d42;  // 0x42 = "B" 0x4d = "M" 
+	bfh.bfType		= 0x4d42;  // 0x42 = "B" 0x4d = "M" 
 	bfh.bfReserved1		= 0;
 	bfh.bfReserved2		= 0;
 	bfh.bfOffBits		= (DWORD) sizeof(BITMAPFILEHEADER) + 
 		bih.biSize + sizeof (rgb); 
 
-	// numri i bajtave ne gjeresi te bitmapit
+	// number of bytes on bitmap width
 	long lNumberBytes = WIDTHBYTES (lWidth * bih.biBitCount);
-
-	// pikselat qe vendosen ne nje rresht
+	
 	char *szRow			= new char[lNumberBytes];
 
-	// te gjithe pikselat vendosen ne kete varg
+	// all the pixels are saved on this array
 	char *szBytes		= new char[lNumberBytes * lHeight];
 	int nCurrentWByte;
 
 	for (int nCurrentHeight = 0; nCurrentHeight < lHeight; nCurrentHeight++)
 	{
-		// te gjithe bajtat ne nje rresht do te jene 0
+		// all the bytes on a row will have value 0
 		for (nCurrentWByte = 0; nCurrentWByte < lNumberBytes; nCurrentWByte++)
 		{
 			szRow[nCurrentWByte]  = 0;
 		}
-		// vetem bajtat e caktuar behen 1
+		// only some of the bytes will have value 1
 		for (nCurrentWByte = 0; nCurrentWByte < lWidth; nCurrentWByte++)
 		{
 			szRow[nCurrentWByte] = 0xff;
@@ -157,8 +153,8 @@ int main(int argc, char *argv[])
 		memcpy(szBytes + nCurrentHeight * lNumberBytes, szRow, lNumberBytes);
 	}
 
-	// shkruaj informatat per BITMAPFILEHEADER, BITMAPINFOHEADER, RGBQUAD dhe 
-	// per pikselat ne file-in binar
+	// writes information for BITMAPFILEHEADER, BITMAPINFOHEADER dhe 
+	// and pixels in binary file
 
 	fwrite(&bfh, sizeof(BITMAPFILEHEADER), 1, fbitmap);
 	fwrite(&bih, sizeof(BITMAPINFOHEADER), 1, fbitmap);
@@ -171,6 +167,6 @@ int main(int argc, char *argv[])
 	szBytes = NULL;
 	
 	fclose(fbitmap);
-	printf ("Datoteka %s u krijua ne rregull\n", szFileName);
+	printf ("File %s was successfuly created\n", szFileName);
 	return 0;
 }
