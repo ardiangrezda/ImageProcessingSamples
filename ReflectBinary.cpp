@@ -1,34 +1,32 @@
-/* Implementuar nga Ardian Grezda per lenden "Procesimi i imixheve" (mars-qershor 2004)
+/* Implemented by Ardian Grezda for the subject "Image processing" (march-june 2004) in University of Prishtina, Kosovo
 
- Ky program e ben reflektimin e nje imazhi binar pergjate boshtit vertikal, 
-	ku si qender e boshtit merret qendra e imazhit hyres
+The program will reflect a binary image through vertical axis, where the center axis will be the center of input image
 
- Sintaksa:
-	 ReflectBinary FileHyres FileDales
-	ku 
-		FileHyres eshte emri i file-it hyres
-		FileDales eshte emri i file-it dales
+Syntax:
+	 ReflectBinary InputFile OutputFile
+	where 
+		InputFile is name of the input file
+		OutputFile is name of the output file
  */
 #include <stdio.h>
 #include <windows.h>
 
-// Ky funksion verifikon se a eshte file-i hyres si bitmap file. Nese po, kthehet 0, 
-// e nese nuk eshte bitmap, pason dalja nga programi
+// The function verifies if the input file is bitmap file. If yes, value 0 will be returned, 
+// otherwise the program will terminate
 //
 int CheckIfBinaryBitmap(char * szFileName, BITMAPFILEHEADER *bfh, BITMAPINFOHEADER *bih, int *ngjyra);
 
-// Ketu do te fitohen vetem pikselat per imixhet hyrese, te cilat ruhen ne variablen szPixels
-// nNumberOfPixels- numri i pikselave ne file-in hyres
-// szFileName - emri i file-it hyres
-// Nese dalja eshte 0, qdo gje ka perfunduar ne rregull, perndryshe do te kemi ndonje gabim
+// Here will get pixels from input images, which will be saved into variable szPixels
+// nNumberOfPixels- number of pixels in the input file
+// szFileName - the name of the input file
+// If the returned value is 0, everything went OK.
 int PixelBytes(long nNumberOfBytes, unsigned char *szBytes, char * szFileName);
 
-// Ky funksion e ben reflektimin e imazhit binar dhe rezultain e ruan ne file-in dales 
+// The function will reflect the binary image and save the result into output file
 int Reflect(char *szOutputFile, unsigned char *szBytesIm, long nNumberOfBytes, 
 			BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih);
 
-// Ky funksion i inverton bajtat, dmth nese vlera e pikselave eshte 0, atehere behet 1,
-// ndersa nese eshte 1, atehere behet 0
+// The function invert bytes, i.e. if the pixel value is 0, it will became 1 and vise versa
 void InvertBytes(unsigned char *szBytes, long nNumberOfBytes);
 
 #define WIDTHBYTES(bits)    (((bits) + 31) / 32 * 4) 
@@ -36,7 +34,7 @@ int main(int argc, char *argv[])
 {
 	if (argc != 3)
 	{
-		printf("Sintaksa: ReflectBinary FileHyres FileDales\n");
+		printf("Syntax: ReflectBinary InputFile OutputFile\n");
 		return -1;
 	}
 	argv[1] = strupr(argv[1]);
@@ -47,9 +45,9 @@ int main(int argc, char *argv[])
 	strcpy(szOutputFile, argv[2]);
 	char *Extension;
 
-	// Gjen paraqitjen e fundit te pikes ne emrin e datotekes dhe rezultatin e ruan
-	// ne variablen Extension
-	// kjo behet per file-in e pare hyres
+	// Finds the last apperance of the dot (.) in the filename
+	// and saves it into Extension variable
+	// this is done for the first input file
 	Extension	= strrchr(argv[1],'.');
 	if (Extension == NULL)
 	{
@@ -60,11 +58,11 @@ int main(int argc, char *argv[])
 
 	if (strcmp(Extension, ".BMP"))
 	{
-		printf("Bitmapi duhet te kete ekstenzion .bmp!\n");
+		printf("Bitmap must have extension .bmp!\n");
 		return -1;
 	}
 
-	// Cakto ekstenzionin per file-in dales 
+	// Determine extension for output file
 	Extension	= strrchr(argv[2],'.');
 	if (Extension == NULL)
 	{
@@ -74,57 +72,54 @@ int main(int argc, char *argv[])
 	Extension	= strupr(Extension);
 	if (strcmp(Extension, ".BMP"))
 	{
-		printf("Bitmapi duhet te kete ekstenzion .bmp!\n");
+		printf("Bitmap must have extension .bmp!\n");
 		return -1;
 	}
-	// struktura BITMAPFILEHEADER per file-in hyres
+	// structure BITMAPFILEHEADER for the first and the second input file
 	BITMAPFILEHEADER bfh;
-	// struktura BITMAPINFOHEADER per file-in hyres
+	// structure BITMAPINFOHEADER for the first and the second input file
 	BITMAPINFOHEADER bih;
 	
 	int nNgjyra;
-
-	// Thirret ky funksion per te kontrolluar a eshte imixhi hyres bitmap
+	// This function is called to check if the image is of type bitmap
 	if (CheckIfBinaryBitmap(szInputFile, &bfh, &bih, &nNgjyra))
 	{
-		printf("Ka ardhe deri te ndonje gabim ne strukturen e bitmapit hyres\n");
+		printf("There has been an error in the structure of the bitmap\n");
 		return -1;
 	}
 
-	// numri i pikselave caktohet nga kjo shprehje
+	// number of pixels is evaluated by this expression
 	long nNumberOfBytes = bfh.bfSize - sizeof(BITMAPFILEHEADER) - sizeof(BITMAPINFOHEADER)
 		- sizeof(RGBQUAD[2]);
 	
-	// bufferi per pikselat e imixhit hyres
+	// buffer for pixels of the input image
 	unsigned char *szBytes = new unsigned char [nNumberOfBytes];
 
-	// Bajtat e imixhit hyres ruhen ne variablen szBytes
+	// Bytes of the image are stored on variable szBytes
 	if (PixelBytes(nNumberOfBytes, szBytes, szInputFile))
 	{
-		printf("Ka ardhe deri te ndonje gabim ne strukturen e bitmapit 1\n");
+		printf("There has been an error in the structure of the bitmap\n");
 		delete [] szBytes;
 		szBytes = NULL;
 		return -1;
 	}
 
-	// nese tabela e ngjyrave eshte se pari ngjyra e bardhe (ff ff ff 00) e pastaj
-	// ngjyra e zeze (00 00 00 00), bytat qe permbajne imixhin duhet te invertohen
+	// if the color table is first white color (ff ff ff 00) and then 
+	// black color (00 00 00 00), bytes that contain the image must invert
 	if (nNgjyra != 0)
 	{
 		InvertBytes(szBytes, nNumberOfBytes);
 	}
-
-	// e ben reflektimin e imazhit hyres pergjate boshtit vertikal, ku si 
-	// qender e boshtit merret qendra e imazhit hyres
+	// relfects input image through vertical axis, where the center of the axis is center of the input image
 	if (Reflect(szOutputFile, szBytes, nNumberOfBytes, bfh, bih))
 	{
-		printf("Ka ardhe deri te ndonje gabim ne operatorin e refletimit\n");
+		printf("There has been an error in reflection\n");
 		return -1;
 	}
 
 	delete [] szBytes;
 	szBytes = NULL;
-	printf("Imixhi %s u krijua ne rregull\n", szOutputFile);
+	printf("Image %s was successfuly created\n", szOutputFile);
 	return 0;
 }
 
@@ -134,83 +129,81 @@ int CheckIfBinaryBitmap(char * szFileName, BITMAPFILEHEADER *bfh, BITMAPINFOHEAD
 	FILE *fInputBitmap;
 	if ((fInputBitmap = fopen(szFileName, "r+b")) == NULL)
 	{
-		printf("Datoteka %s nuk ekziston apo nuk mund te hapet\n", szFileName);
+		printf("File %s does not exist or cannot be opened\n", szFileName);
 		return 1;
 	}
-	// kontrollo madhesine e file-it dhe rezultatin e ruan ne variablen lFileSize
+	// checks the size of the file and the result is saved into variable lFileSize
 	long lFileSize;
 	fseek(fInputBitmap, 0, SEEK_END);
 	lFileSize = ftell(fInputBitmap);
-	// shko ne fillim te file-it
+	// goes on the beginning of the file
 	fseek(fInputBitmap, 0, SEEK_SET);
 	int nNumberRead;
-	// lexo bajtat per BITMAPFILEHEADER dhe ruaji ne var. tempBuffer
+	// reads bytes for BITMAPFILEHEADER and saves them in the variable tempBuffer
 	nNumberRead = fread(tempBuffer, sizeof(char), sizeof(BITMAPFILEHEADER), fInputBitmap);
-	// mbushe variablen tempBuffer me strukturen BITMAPFILEHEADER
+	// fills variable tempBuffer with BITMAPFILEHEADER structure
 	memcpy((char *) bfh, tempBuffer, sizeof(BITMAPFILEHEADER));
-	// verifiko madhesine e file-it
+	// verifies size of the file
 	if (bfh->bfSize != lFileSize)
 	{
 		fclose(fInputBitmap);
-		printf("Datoteka %s duhet te kete %ld bajte\n", szFileName, lFileSize);
+		printf("File %s must have %ld bytes\n", szFileName, lFileSize);
 		return 1;
 	}
-	// verifiko 2 bajtat e pare te file-it
+	// Verifies the first two bytes of the file
 	if (bfh->bfType != 0x4d42)
 	{
 		fclose(fInputBitmap);
-		printf("Datoteka %s nuk eshte bitmap file\n", szFileName);
+		printf("File %s is not of type bitmap\n", szFileName);
 		return 1;
 	}
 	if (bfh->bfReserved1 != 0)
 	{
 		fclose(fInputBitmap);
-		printf("Bajtat 7 dhe 8 te datotekes %s duhet te jene 0\n", szFileName);
+		printf("Bytes 7 and 8 of the file %s must be 0\n", szFileName);
 		return 1;
 	}
 
 	if (bfh->bfReserved2 != 0)
 	{
 		fclose(fInputBitmap);
-		printf("Bajtat 9 dhe 10 te datotekes %s duhet te jene 0\n", szFileName);
+		printf("Bytes 9 and 10 of the file %s must be 0\n", szFileName);
 		return 1;
 	}
 
-	// lexo bajtat e ardhshem prej file-it dhe rezultatin ruaje ne variablen tempBuffer
+	// reads next bytes from the file and result is saved into variable tempBuffer
 	nNumberRead = fread(tempBuffer, sizeof(char), sizeof(BITMAPINFOHEADER), fInputBitmap);
 	memcpy((char *) bih, tempBuffer, sizeof(BITMAPINFOHEADER));
-	// verifiko a eshte numri i bitave per piksel 1
+	// verifies if the number of bits is 1 per pixel
 	if (bih->biBitCount != 1)
 	{
 		fclose(fInputBitmap);
-		printf("Numri i bitave per piksel duhet te jete 2\n");
+		printf("Numer of bits per pixel should be 1\n");
 		return 1;
 
 	}
-	// verifiko a eshte bitmapi i kompresuar
+	// verifies if the bitmap is compressed
 	if (bih->biCompression != BI_RGB)
 	{
 		fclose(fInputBitmap);
-		printf("Bitmapi eshte i kompresuar\n");
+		printf("Bitmap is compressed\n");
 		return 1;
 	}
 
 	RGBQUAD rgb[2];
-	// lexo tabelen e ngjyrave, e ketu tabela e ngjyrave ka dy elemente, ku elementi
-	// i pare i ka komponentet R=G=B =0, ndersa elementi i dyte i ka komponentat 
-	// R = G = B = 255
+
 	int nNgjyra1, nNgjyra2;
 	nNumberRead = fread(tempBuffer, sizeof(char), sizeof(rgb[0]), fInputBitmap);
 	nNgjyra1 = tempBuffer[0];
 	if (nNgjyra1 != tempBuffer[1])
 	{
-		printf("Tabela e ngjyrave nuk eshte korrekte\n");
+		printf("The table color is not correct\n");
 		fclose(fInputBitmap);
 		return 1;
 	}
 	else if (nNgjyra1 != tempBuffer[2])
 	{
-		printf("Tabela e ngjyrave nuk eshte korrekte\n");
+		printf("The table color is not correct\n");
 		fclose(fInputBitmap);
 		return 1;
 	}
@@ -219,27 +212,27 @@ int CheckIfBinaryBitmap(char * szFileName, BITMAPFILEHEADER *bfh, BITMAPINFOHEAD
 	nNgjyra2 = tempBuffer[0];
 	if (nNgjyra2 != tempBuffer[1])
 	{
-		printf("Tabela e ngjyrave nuk eshte korrekte\n");
+		printf("The table color is not correct\n");
 		fclose(fInputBitmap);
 		return 1;
 	}
 	else if (nNgjyra2 != tempBuffer[2])
 	{
-		printf("Tabela e ngjyrave nuk eshte korrekte\n");
+		printf("The table color is not correct\n");
 		fclose(fInputBitmap);
 		return 1;
 	}
 
 	if (nNgjyra1 != 0 && nNgjyra1 != 255)
 	{
-		printf("Tabela e ngjyrave nuk eshte korrekte\n");
+		printf("The table color is not correct\n");
 		fclose(fInputBitmap);
 		return 1;
 	}
 	
 	if (nNgjyra2 != 0 && nNgjyra2 != 255)
 	{
-		printf("Tabela e ngjyrave nuk eshte korrekte\n");
+		printf("The table color is not correct\n");
 		fclose(fInputBitmap);
 		return 1;
 	}
@@ -254,16 +247,16 @@ int PixelBytes(long nNumberOfBytes, unsigned char *szBytes, char * szFileName)
 	FILE *fInputBitmap;
 	if ((fInputBitmap = fopen(szFileName, "r+b")) == NULL)
 	{
-		printf("Datoteka %s nuk ekziston apo nuk mund te hapet\n", szFileName);
+		printf("File %s does not exist or could not be opened\n", szFileName);
 		return 1;
 	}
 
-	// Pasi imixhi eshte binar, pikselat do te jene te vendosura pas strukturave
-	// BITMAPFILEHEADER, BITMAPINFOHEADER si dhe pas tabeles se ngjyrave RGBQUAD[2]
+	// As the image is binary, pixels will be placed after structures
+	// BITMAPFILEHEADER, BITMAPINFOHEADER and after table color RGBQUAD[2]
 	int nOffsetBytes = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD[2]);
-	// ketu pointeri i file-it shkon pas struktures BITMAPFILEHEADER, BITMAPINFOHEADER dhe tabeles se ngjyrave
+	// pointer file goes after structures BITMAPFILEHEADER, BITMAPINFOHEADER and table color
 	fseek(fInputBitmap, nOffsetBytes, SEEK_SET);
-	// lexo bajtat e file-it dhe rezultati ruhet ne variablen szPixels
+	// read bytes of the file and save the result into variable szPixels
 	long nNumberRead = fread(szBytes, sizeof(char), nNumberOfBytes, fInputBitmap);
 	fclose(fInputBitmap);
 	return 0;
@@ -275,11 +268,11 @@ int Reflect(char *szOutputFile, unsigned char *szBytesIm, long nNumberOfBytes,
 	FILE *fOutputBitmap;
 	if ((fOutputBitmap = fopen(szOutputFile, "w+b")) == NULL)
 	{
-		printf("Datoteka %s nuk ka mundur te krijohet\n", szOutputFile);
+		printf("File %s could not be created\n", szOutputFile);
 		return 1;
 	}
 
-	// Variabla szOutputPixels ruan bajtat e file-it dales
+	// Variable szOutputPixels stores the bytes of the output file
 	unsigned char *szOutputBytes	= new unsigned char[nNumberOfBytes];
 	int nWidth						= bih.biWidth;
 	int nHeight						= bih.biHeight;
@@ -287,18 +280,18 @@ int Reflect(char *szOutputFile, unsigned char *szBytesIm, long nNumberOfBytes,
 
 	unsigned char *szRow			= new unsigned char[nWidthBytes];
 
-	// ne fillim te gjithe bajtat dales jane zero
+	// initally all output bytes are zeros
 	int i;
 	for (i = 0; i < nNumberOfBytes; i++)
 	{
 		szOutputBytes[i] = 0;
 	}
-
-	// bajti qe momentalisht procesohet
+	
+	// the current byte processed
 	int nCurrentImageByte, nCurrentReflectByte;
-	// biti brenda bajtit qe momentalisht procesohet
+	// the bit inside byte which is currently processed
 	int nCurrentImageBitFromByte, nCurrentReflectBitFromByte;
-	// vlera e bitave te imixhit origjinal dhe te reflektuar
+	// the value of the bits of the original and reflected image
 	int ValueImageBit, ValueReflectedBit;
 	for (int nCurrentHeight = 0; nCurrentHeight < nHeight; nCurrentHeight++)
 	{
@@ -318,7 +311,7 @@ int Reflect(char *szOutputFile, unsigned char *szBytesIm, long nNumberOfBytes,
 					|= ValueImageBit << (8 - nCurrentReflectBitFromByte - 1);
 		}
 	}
-		// mbushe strukturen RGBQUAD ashtu qe komponentet R,G,B jane te njejta
+	// fill structure RGBQUAD so the components R,G,B are the same
 	RGBQUAD rgb[2];
 	rgb[0].rgbBlue		= 0;
 	rgb[0].rgbGreen		= 0;
@@ -331,7 +324,7 @@ int Reflect(char *szOutputFile, unsigned char *szBytesIm, long nNumberOfBytes,
 	rgb[1].rgbReserved	= 0;
 
 
-	// shkruaj ne file-in dales
+	// writes on output file
 	fwrite(&bfh, sizeof(BITMAPFILEHEADER), 1, fOutputBitmap);
 	fwrite(&bih, sizeof(BITMAPINFOHEADER), 1, fOutputBitmap);
 	fwrite(&rgb, sizeof(rgb), 1, fOutputBitmap);
